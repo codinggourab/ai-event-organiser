@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Building, Crown, Plus, Sparkles, Ticket } from "lucide-react";
-import { SignInButton, useAuth, UserButton, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, useAuth, UserButton, useUser } from "@clerk/nextjs";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { BarLoader } from "react-spinners";
 import { useStoreUser } from "@/hooks/use-store-user";
@@ -24,6 +24,10 @@ export default function Header() {
 
   const { has } = useAuth();
   const hasPro = has?.({ plan: "pro" });
+  const { userId, isSignedIn } = useAuth();
+
+// console.log("CLIENT userId:", userId);
+// console.log("CLIENT isSignedIn:", isSignedIn);
 
   return (
     <>
@@ -70,7 +74,7 @@ export default function Header() {
               <Link href="/explore">Explore</Link>
             </Button>
 
-            <Authenticated>
+            <SignedIn>
               {/* Create Event Button */}
               <Button size="sm" asChild className="flex gap-2 mr-4">
                 <Link href="/create-event">
@@ -102,13 +106,13 @@ export default function Header() {
                   <UserButton.Action label="manageAccount" />
                 </UserButton.MenuItems>
               </UserButton>
-            </Authenticated>
+            </SignedIn>
 
-            <Unauthenticated>
+            <SignedOut>
               <SignInButton mode="modal">
                 <Button size="sm">Sign In</Button>
               </SignInButton>
-            </Unauthenticated>
+            </SignedOut>
           </div>
         </div>
 

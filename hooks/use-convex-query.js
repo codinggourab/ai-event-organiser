@@ -2,34 +2,41 @@ import { useQuery, useMutation } from "convex/react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-export const useConvexQuery = (query, ...args) => {
-  const result = useQuery(query, ...args);
+export const useConvexQuery = (query, args) => {
+  // Determine if we should skip the query
+  // Skip when args is null (waiting for dependencies) or contains undefined values
+  const shouldSkip =
+    args === null ||
+    (args !== undefined &&
+      Object.values(args).some((v) => v === undefined || v === null));
+
+  // Always call useQuery - use "skip" token to conditionally disable it
+  // This satisfies React's Rules of Hooks (no conditional hook calls)
+  const result = useQuery(query, shouldSkip ? "skip" : args ?? {});
+
   const [data, setData] = useState(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Use effect to handle the state changes based on the query result
   useEffect(() => {
-    if (result === undefined) {
+    // Still loading if skipped or result not yet available
+    if (shouldSkip || result === undefined) {
       setIsLoading(true);
-    } else {
-      try {
-        setData(result);
-        setError(null);
-      } catch (err) {
-        setError(err);
-        toast.error(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+      return;
     }
-  }, [result]);
 
-  return {
-    data,
-    isLoading,
-    error,
-  };
+    try {
+      setData(result);
+      setError(null);
+      setIsLoading(false);
+    } catch (err) {
+      setError(err);
+      toast.error(err.message);
+      setIsLoading(false);
+    }
+  }, [result, shouldSkip]);
+
+  return { data, isLoading, error };
 };
 
 export const useConvexMutation = (mutation) => {

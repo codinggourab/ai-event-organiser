@@ -43,22 +43,33 @@ export default function EventDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showQRScanner, setShowQRScanner] = useState(false);
 
-  // Fetch event dashboard data
-  const { data: dashboardData, isLoading } = useConvexQuery(
-    api.dashboard.getEventDashboard,
-    { eventId }
+    // Fetch event by ID - skip if no eventId in URL params
+  const { data: event, isLoading: loadingEvent } = useConvexQuery(
+    api.events.getEventById,
+    eventId ? { eventId } : null  // null = skip (waiting for params)
   );
 
-  // Fetch registrations
+  // Fetch dashboard data - skip until we have the event document ID
+  const { data: dashboardData, isLoading } = useConvexQuery(
+    api.dashboard.getEventDashboard,
+    event?._id ? { eventId: event._id } : null  // null = skip (waiting for event)
+  );
+
+  // Fetch registrations - skip until we have the event document ID
   const { data: registrations, isLoading: loadingRegistrations } =
-    useConvexQuery(api.registrations.getEventRegistrations, { eventId });
+    useConvexQuery(
+      api.registrations.getEventRegistrations,
+      event?._id ? { eventId: event._id } : null  // null = skip (waiting for event)
+    );
 
   // Delete event mutation
   const { mutate: deleteEvent, isLoading: isDeleting } = useConvexMutation(
-    api.dashboard.deleteEvent
+    api.events.deleteEvent
   );
 
   const handleDelete = async () => {
+    if (!event) return;
+
     const confirmed = window.confirm(
       "Are you sure you want to delete this event? This action cannot be undone and will permanently delete the event and all associated registrations."
     );
@@ -66,7 +77,7 @@ export default function EventDashboardPage() {
     if (!confirmed) return;
 
     try {
-      await deleteEvent({ eventId });
+      await deleteEvent({ eventId: event._id });
       toast.success("Event deleted successfully");
       router.push("/my-events");
     } catch (error) {
@@ -110,7 +121,7 @@ export default function EventDashboardPage() {
     toast.success("CSV exported successfully");
   };
 
-  if (isLoading || loadingRegistrations) {
+  if (loadingEvent || isLoading || loadingRegistrations) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
@@ -118,11 +129,11 @@ export default function EventDashboardPage() {
     );
   }
 
-  if (!dashboardData) {
+  if (!event || !dashboardData) {
     notFound();
   }
 
-  const { event, stats } = dashboardData;
+  const { event: dashboardEvent, stats } = dashboardData;
 
   // Filter registrations based on active tab and search
   const filteredRegistrations = registrations?.filter((reg) => {
@@ -155,11 +166,11 @@ export default function EventDashboardPage() {
           </Button>
         </div>
 
-        {event.coverImage && (
+        {dashboardEvent.coverImage && (
           <div className="relative h-[350px] rounded-2xl overflow-hidden mb-6">
             <Image
-              src={event.coverImage}
-              alt={event.title}
+              src={dashboardEvent.coverImage}
+              alt={dashboardEvent.title}
               fill
               className="object-cover"
               priority
@@ -170,22 +181,22 @@ export default function EventDashboardPage() {
         {/* Event Header */}
         <div className="flex flex-col gap-5 sm:flex-row items-start justify-between mb-4">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-3">{event.title}</h1>
+            <h1 className="text-3xl font-bold mb-3">{dashboardEvent.title}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <Badge variant="outline">
-                {getCategoryIcon(event.category)}{" "}
-                {getCategoryLabel(event.category)}
+                {getCategoryIcon(dashboardEvent.category)}{" "}
+                {getCategoryLabel(dashboardEvent.category)}
               </Badge>
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{format(event.startDate, "PPP")}</span>
+                <span>{format(dashboardEvent.startDate, "PPP")}</span>
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 <span>
-                  {event.locationType === "online"
+                  {dashboardEvent.locationType === "online"
                     ? "Online"
-                    : `${event.city}, ${event.state || event.country}`}
+                    : `${dashboardEvent.city}, ${dashboardEvent.state || dashboardEvent.country}`}
                 </span>
               </div>
             </div>
@@ -195,7 +206,7 @@ export default function EventDashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/events/${event.slug}`)}
+              onClick={() => router.push(`/events/${dashboardEvent.slug}`)}
               className="gap-2 flex-1"
             >
               <Eye className="w-4 h-4" />
@@ -255,7 +266,7 @@ export default function EventDashboardPage() {
             </CardContent>
           </Card>
 
-          {event.ticketType === "paid" ? (
+          {dashboardEvent.ticketType === "paid" ? (
             <Card className="py-0">
               <CardContent className="p-6 flex items-center gap-3">
                 <div className="p-3 bg-blue-100 rounded-lg">

@@ -1,5 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import Header from "@/components/header";
+import HeaderWrapper from "@/components/header-wrapper";
 import "./globals.css";
 import { dark } from "@clerk/themes";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -15,7 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-linear-to-br from-gray-950 via-zinc-900 to-stone-900 text-white">
+      <body suppressHydrationWarning className="bg-linear-to-br from-gray-950 via-zinc-900 to-stone-900 text-white">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -24,7 +24,7 @@ export default function RootLayout({ children }) {
         >
           <ClerkProvider appearance={{ baseTheme: dark }}>
             <ConvexClientProvider>
-              <Header />
+              <HeaderWrapper />
 
               <main className="relative min-h-screen container mx-auto pt-40 md:pt-32">
                 {/* Background glow effects (behind everything) */}

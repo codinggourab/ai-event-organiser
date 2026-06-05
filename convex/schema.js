@@ -8,6 +8,7 @@ export default defineSchema({
     email: v.string(),
     tokenIdentifier: v.string(), // Clerk user ID for auth
     name: v.string(),
+     isPro: v.optional(v.boolean()), // Track Pro status
     imageUrl: v.optional(v.string()),
 
     // Onboarding
